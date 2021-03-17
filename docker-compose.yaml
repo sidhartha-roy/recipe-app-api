@@ -11,4 +11,36 @@ services:
     volumes:
     - ./app:/app
     command: >
-      sh -c "python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=supersecretpassword
+    # we want our app service to depend on the database service
+    # 1. this makes sure that the database service is started first
+    # 2. the database service will be available via the network when
+    #    we you use the hostname db. So, when in an app service you can
+    #    just use the name db and it will connect to whatever container
+    #    is running in the db service
+    depends_on:
+      - db
+
+  # this this database service
+  db:
+    # this looks for the postgres image from dockerhub and
+    # pulls the image with the tag 10-alpine
+    image: postgres:10-alpine
+    # set some environment variables
+    # these usernames and passwords are created
+    # In production code you would use an encrypted environment
+    # variable that over rides these environment variables
+    # (in Travis or GitHub Actions)
+    environment:
+      - POSTGRES_DB=app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=supersecretpassword
+
+
